@@ -1,10 +1,10 @@
 import socket
 from _thread import *
 
+from main.Model.ChatRoom import ChatRoom
 from main.Tools.OutputFormater import OutputFormater
 from main.serverlib import clientSocket
 from main.Model.User import User
-
 
 # 服务端的基本配置细腻些
 HOSTNAME = "localhost"
@@ -15,10 +15,12 @@ DEFAULT_CONNECTION_NUM = 20
 # 当前连接的数量
 clients = []
 names = []
+rooms = list()
 
 
 # 线程里执行的方法
 # 用户发送的消息的格式 {msg:'',type:0}
+# todo: 用户强制终止客户端应用时，需要在服务端检测到异样并及时清理
 def handle_new_client_come_in(c):
     new_user = User(clientSocket(c))
     new_client_socket = clientSocket(c)
@@ -77,14 +79,71 @@ def handle_new_client_come_in(c):
                 if des_user in names:
                     for client in clients:
                         if client.username == des_user:
-                            client.socket.write('[User:{0}]:{1}'.format(new_user.username, msg_content[msg_content.index(":")+1:]), 11, 'utf8')
+                            client.socket.write(
+                                '[User:{0}]:{1}'.format(new_user.username, msg_content[msg_content.index(":") + 1:]),
+                                11, 'utf8')
+                            print(OutputFormater.get_format_output("Private",
+                                                                   '[User:{0}]:{1}'.format(new_user.username,
+                                                                                           msg_content[
+                                                                                           msg_content.index(
+                                                                                               ":") + 1:])))
                 else:
-                    print(OutputFormater.get_format_output("system", "{0} user is trying to communicate with a offline user {1}".format(new_user.username,des_user)))
+                    print(OutputFormater.get_format_output("system",
+                                                           "{0} user is trying to communicate with a offline user {1}".format(
+                                                               new_user.username, des_user)))
                     new_user.socket.write("User is not online, please try to communicate with him/her later!", 15)
             # 接收群聊消息 todo: 当前只支持用户加入一个群聊中
             elif 2 == data.get('type'):
-                # 暂时未做群聊的部分
-                print()
+                text = data.get('msg')
+                msg_content = text[text.index(":") + 1:]
+                group_name = text[:text.index(":")]
+                if "leave_type" == msg_content:
+                    # 用户请求离开此聊天室
+                    is_exist = False
+                    for r in rooms:
+                        if r.chat_room_name == group_name:
+                            is_exist = True
+                            new_user.leave_room(r)
+                            print(OutputFormater.get_format_output("Group Chat|{0}".format(group_name),
+                                                                   '[User:{0}]:{1}'.format(new_user.username,
+                                                                                           "leave this chat room")))
+                    if not is_exist:
+                        print(OutputFormater.get_format_output("system",
+                                                               "{0} user is trying to leave an invalid chat room {1}".format(
+                                                                   new_user.username, group_name)))
+                        new_user.socket.write("Room is not valid ! ", 15)
+                elif "join_type" == msg_content:
+                    is_exist = False
+                    for r in rooms:
+                        if r.chat_room_name == group_name:
+                            is_exist = True
+                            new_user.join_room(r)
+                    if not is_exist:
+                        print(OutputFormater.get_format_output("system",
+                                                               "{0} user is trying to leave an invalid chat room {1}".format(
+                                                                   new_user.username, group_name)))
+                        new_user.socket.write("Room is not valid ! ", 15)
+                elif "create_type" == msg_content:
+                    room = ChatRoom(group_name, new_user)
+                    rooms.append(room)
+                    new_user.join_room(room)
+                    print(OutputFormater.get_format_output("Group Chat|{0}".format(group_name),
+                                                           '[User:{0}]:{1}'.format(new_user.username,
+                                                                                   "I have created this group!")))
+                else:
+                    # 加入群聊的消息
+                    # 检查群聊名称对应的房间是否存在
+                    is_exist = False
+                    for r in rooms:
+                        if r.chat_room_name == group_name:
+                            is_exist = True
+                            r.send_room_msg(
+                                '[{0}|User:{1}]:{2}'.format(group_name, new_user.username, msg_content))
+                    if not is_exist:
+                        print(OutputFormater.get_format_output("system",
+                                                               "{0} user is trying to say something in an invalid chat room {1}".format(
+                                                                   new_user.username, group_name)))
+                        new_user.socket.write("Room is not valid ! ", 15)
             # 接收广播消息
             elif 3 == data.get('type'):
                 msg = data.get('msg')
@@ -92,14 +151,16 @@ def handle_new_client_come_in(c):
                 if 0 != len(clients):
                     for client in clients:
                         client.socket.write('[User:{0}]:{1}'.format(new_user.username, msg), 13, 'utf8')
-                    print(OutputFormater.get_format_output('Broadcast', '[User:{0}]:{1}'.format(new_user.username, msg)))
+                    print(
+                        OutputFormater.get_format_output('Broadcast', '[User:{0}]:{1}'.format(new_user.username, msg)))
                     # 接收群聊消息 todo: 当前只支持用户加入一个群聊中
             elif 4 == data.get('type'):
                 # todo:清理用户的在线信息：退出加入的聊天组，
                 clients.remove(new_user)  # 从在线用户的列表中移除 此用户
                 names.remove(new_user.username)
                 new_user.logout_system()  # 调用封装好的用户类的离开方法 清理用户在线信息
-                print(OutputFormater.get_format_output('Broadcast', 'User %s have left the chat system' % new_user.username))
+                print(OutputFormater.get_format_output('Broadcast',
+                                                       'User %s have left the chat system' % new_user.username))
                 break
             # 不合理的消息请求
             else:

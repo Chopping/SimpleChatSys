@@ -51,10 +51,14 @@ def create_message(msg_type: int, content: str):
 
 # 读取服务器端的传递的消息
 def readFromServer(sock: socket, encode_type: str):
-    recv_d = sock.recv(4096)
-    if recv_d is None:
-        return None
-    data = json.loads(recv_d.decode(encode_type))
+    try:
+        recv_d = sock.recv(4096)
+        if recv_d is None:
+            return None
+        data = json.loads(recv_d.decode(encode_type))
+    except error as e:
+        print(system_output_format("system", e))
+        data = None
     return data
 
 
@@ -120,14 +124,37 @@ def handleUserInput(conn: socket, input):
     type = 4 表示 此条消息是系统通知消息 例如 用户下线
     """
     if "@" in input:  # 表示是私信消息
-        # 截取目标用户的名字
-        des_user = input[input.index("@")+1:input.index(":")]
-        print(system_output_format('Private', "[send to User:{0}]:{1}".format(des_user,input[input.index(":")+1:])))
-        sendMsg2Server(conn, "{0}:{1}".format(des_user, input[input.index(":")+1:]), 1, DEFAULT_MSG_ENCODE_TYPE)
-    elif all(p in ["[", "]"] for p in input):
-        # 截取群聊名称
-        des_group_name = input[input.index("[")+1:input.index("]")]
-        sendMsg2Server(conn, "{0}:{1}".format(des_group_name, input[input.index(":") + 1:]), 1, DEFAULT_MSG_ENCODE_TYPE)
+        if len(input) > 1:
+            # 截取目标用户的名字
+            des_user = input[input.index("@") + 1:input.index(":")]
+            print(system_output_format('Private',
+                                       "[send to User:{0}]:{1}".format(des_user, input[input.index(":") + 1:])))
+            sendMsg2Server(conn, "{0}:{1}".format(des_user, input[input.index(":") + 1:]), 1, DEFAULT_MSG_ENCODE_TYPE)
+    elif "#" in input:
+        if len(input) > 1:
+            # 截取群聊名称
+            des_group_name = input[1:input.index(":")]
+            sendMsg2Server(conn, "{0}:{1}".format(des_group_name, input[input.index(":") + 1:]), 2, DEFAULT_MSG_ENCODE_TYPE)
+    elif "leave" in input:
+        if len(input) > 1:
+            # 截取群聊名称 leave [group name]包括一个空格
+            des_group_name = input[input.index("leave")+2:]
+            sendMsg2Server(conn, "{0}:{1}".format(des_group_name, "leave_type"), 2, DEFAULT_MSG_ENCODE_TYPE)
+    elif "join" in input:
+        if len(input) > 1:
+            # 截取群聊名称 leave [group name]包括一个空格
+            des_group_name = input[input.index("join")+5:]
+            sendMsg2Server(conn, "{0}:{1}".format(des_group_name, "join_type"), 2, DEFAULT_MSG_ENCODE_TYPE)
+    elif "create" in input:
+        if len(input) > 1:
+            # 截取群聊名称 leave [group name]包括一个空格
+            des_group_name = input[input.index("create")+7:]
+            sendMsg2Server(conn, "{0}:{1}".format(des_group_name, "create_type"), 2, DEFAULT_MSG_ENCODE_TYPE)
+    # elif all(p in ["[", "]"] for p in input):
+    #     # 截取群聊名称
+    #     des_group_name = input[input.index("[") + 1:input.index("]")]
+    #     print(des_group_name)
+    #     sendMsg2Server(conn, "{0}:{1}".format(des_group_name, input[input.index(":") + 1:]), 2, DEFAULT_MSG_ENCODE_TYPE)
     else:
         sendMsg2Server(conn, input, 3, DEFAULT_MSG_ENCODE_TYPE)
 
@@ -149,7 +176,11 @@ def start_connection():
         # 发送消息的部分是需要在主线程上一直进行的，所以不需要放在多线程上。
         sendMsg2Server(s, name, 0, DEFAULT_MSG_ENCODE_TYPE)
 
-        msg = readFromServer(s, DEFAULT_MSG_ENCODE_TYPE)
+        try:
+            msg = readFromServer(s, DEFAULT_MSG_ENCODE_TYPE)
+        except error as e:
+            msg = None
+            print(system_output_format("system", e))
         if msg is None:
             pass
         else:
@@ -189,20 +220,23 @@ def start_connection():
                 # print("start to listen new message on thread:", tid)
 
                 while True:
-                    user_input = input()
-                    if user_input == "quit":
-                        IS_CONN = False
-                        print("leaving....")
-                        sendMsg2Server(s, 'quit', 4, DEFAULT_MSG_ENCODE_TYPE)
-                        # 确认服务端已经清除用户的在线信息
-                        endACK = readFromServer(s, DEFAULT_MSG_ENCODE_TYPE)
-                        while None is msg or endACK.get('type') != 14:
-                            print("..")
+                    try:
+                        user_input = input()
+                        if user_input == "quit":
+                            IS_CONN = False
+                            print("leaving....")
+                            sendMsg2Server(s, 'quit', 4, DEFAULT_MSG_ENCODE_TYPE)
+                            # 确认服务端已经清除用户的在线信息
                             endACK = readFromServer(s, DEFAULT_MSG_ENCODE_TYPE)
-                        print("Bye!")
-                        break
-                    else:
-                        handleUserInput(s, user_input)
+                            while None is msg or endACK.get('type') != 14:
+                                print("..")
+                                endACK = readFromServer(s, DEFAULT_MSG_ENCODE_TYPE)
+                            print("Bye!")
+                            break
+                        else:
+                            handleUserInput(s, user_input)
+                    except error as e:
+                        print(system_output_format("system",e))
 
             else:
                 pass

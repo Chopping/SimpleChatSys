@@ -81,7 +81,7 @@ def listenFromServer(conn: socket):
                     '''
                     echoNewMsg(msg)
             except socket.error as e:
-                print(system_output_format("System", "Connection Error:"+e))
+                print(system_output_format("System", "Connection Error:" + e))
         else:
             break
 
@@ -134,21 +134,22 @@ def handleUserInput(conn: socket, input):
         if len(input) > 1:
             # 截取群聊名称
             des_group_name = input[1:input.index(":")]
-            sendMsg2Server(conn, "{0}:{1}".format(des_group_name, input[input.index(":") + 1:]), 2, DEFAULT_MSG_ENCODE_TYPE)
+            sendMsg2Server(conn, "{0}:{1}".format(des_group_name, input[input.index(":") + 1:]), 2,
+                           DEFAULT_MSG_ENCODE_TYPE)
     elif "leave" in input:
         if len(input) > 1:
             # 截取群聊名称 leave [group name]包括一个空格
-            des_group_name = input[input.index("leave")+2:]
+            des_group_name = input[input.index("leave") + 6:]
             sendMsg2Server(conn, "{0}:{1}".format(des_group_name, "leave_type"), 2, DEFAULT_MSG_ENCODE_TYPE)
     elif "join" in input:
         if len(input) > 1:
             # 截取群聊名称 leave [group name]包括一个空格
-            des_group_name = input[input.index("join")+5:]
+            des_group_name = input[input.index("join") + 5:]
             sendMsg2Server(conn, "{0}:{1}".format(des_group_name, "join_type"), 2, DEFAULT_MSG_ENCODE_TYPE)
     elif "create" in input:
         if len(input) > 1:
             # 截取群聊名称 leave [group name]包括一个空格
-            des_group_name = input[input.index("create")+7:]
+            des_group_name = input[input.index("create") + 7:]
             sendMsg2Server(conn, "{0}:{1}".format(des_group_name, "create_type"), 2, DEFAULT_MSG_ENCODE_TYPE)
     # elif all(p in ["[", "]"] for p in input):
     #     # 截取群聊名称
@@ -157,6 +158,17 @@ def handleUserInput(conn: socket, input):
     #     sendMsg2Server(conn, "{0}:{1}".format(des_group_name, input[input.index(":") + 1:]), 2, DEFAULT_MSG_ENCODE_TYPE)
     else:
         sendMsg2Server(conn, input, 3, DEFAULT_MSG_ENCODE_TYPE)
+
+
+def echoHelpInfo():
+    print("Commands now supported in our system are:")
+    print("[words]\t=>\tSay something on the public area.")
+    print("@[username]:[something]\t=>\tSay something to the specific user in private way.")
+    print("create [chat group name]\t=>\tCreate a chatting group to communicate.")
+    print("join [chat group name]\t=>\tJoin a chatting group.")
+    print("leave [chat group name]\t=>\tLeave a chatting group.")
+    print("#[chat group name]:[something]\t=>\tSay something in the specific group.")
+    print("quit \t=>\tQuit from this system.")
 
 
 # 建立连接后 立马发送一个set name 的请求 修改自己的连接名
@@ -211,6 +223,7 @@ def start_connection():
             if msg.get('type') == 12:
                 # 成功进入聊天系统
                 print("Welcome to chat lobby! %s" % name)
+                echoHelpInfo()
                 IS_CONN = True
 
                 # 开新线程执行
@@ -236,7 +249,7 @@ def start_connection():
                         else:
                             handleUserInput(s, user_input)
                     except error as e:
-                        print(system_output_format("system",e))
+                        print(system_output_format("system", e))
 
             else:
                 pass

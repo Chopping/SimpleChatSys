@@ -17,15 +17,16 @@ class User:
     def join_room(self, room: ChatRoom):
         self.rooms.append(room)
         room.members.add(self)
-        room.send_room_msg('[{0}|User:{1}]:{2}'.format(room.chat_room_name, self.username, "%s has joined this chat room!" % self.username))
+        room.send_room_msg('[{0}|User:{1}]:{2}'.format(room.chat_room_name, self.username,
+                                                       "%s has joined this chat room!" % self.username))
 
     def leave_room(self, room: ChatRoom):
-        self.rooms.remove(room)
         if len(room.members) == 0 or self not in room.members:
             pass
         else:
             room.members.remove(self)
-            room.send_room_msg("user %s has left this chat room!" % self.username)
+            room.send_room_msg('[{0}|User:{1}]:{2}'.format(room.chat_room_name, self.username,
+                                                           "user %s has left this chat room!" % self.username))
 
     # todo: 用户类中用来判断此用户是否在线
     def is_online(self):

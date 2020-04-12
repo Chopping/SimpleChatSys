@@ -83,10 +83,7 @@ def handle_new_client_come_in(c):
                                 '[User:{0}]:{1}'.format(new_user.username, msg_content[msg_content.index(":") + 1:]),
                                 11, 'utf8')
                             print(OutputFormater.get_format_output("Private",
-                                                                   '[User:{0}]:{1}'.format(new_user.username,
-                                                                                           msg_content[
-                                                                                           msg_content.index(
-                                                                                               ":") + 1:])))
+                                                                   '[{0}=>{1}]:{2}'.format(new_user.username,des_user, msg_content[msg_content.index(":") + 1:])))
                 else:
                     print(OutputFormater.get_format_output("system",
                                                            "{0} user is trying to communicate with a offline user {1}".format(
@@ -105,8 +102,9 @@ def handle_new_client_come_in(c):
                             is_exist = True
                             new_user.leave_room(r)
                             print(OutputFormater.get_format_output("Group Chat|{0}".format(group_name),
-                                                                   '[User:{0}]:{1}'.format(new_user.username,
-                                                                                           "leave this chat room")))
+                                                                   'User:{0} has left this chat room'.format(
+                                                                       new_user.username)))
+                            new_user.socket.write("You have left chat room %s ! " % group_name, 15)
                     if not is_exist:
                         print(OutputFormater.get_format_output("system",
                                                                "{0} user is trying to leave an invalid chat room {1}".format(
@@ -139,6 +137,8 @@ def handle_new_client_come_in(c):
                             is_exist = True
                             r.send_room_msg(
                                 '[{0}|User:{1}]:{2}'.format(group_name, new_user.username, msg_content))
+                            print(OutputFormater.get_format_output("Group Talk",
+                                                                   '[{0}|User:{1}]:{2}'.format(group_name, new_user.username, msg_content)))
                     if not is_exist:
                         print(OutputFormater.get_format_output("system",
                                                                "{0} user is trying to say something in an invalid chat room {1}".format(

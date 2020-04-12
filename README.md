@@ -8,6 +8,42 @@
 
 
 
+#### 截图:
+
+---------
+
+- 服务器端效果:
+
+  ![server_part_example](/screenshot/server_part.png)
+
+- 客户端效果:
+
+  - 进入系统：
+
+    ![welcome_example](/screenshot/login.png)
+
+  - 其他新用户进入此聊天系统：
+
+    ![new_user_come_in_example](/screenshot/new_user_join_system.png)
+
+  - 进入系统：
+
+    - 用户发送私聊消息给其他用户：
+
+      ![private_talk_example](/screenshot/private_talk_1.PNG)
+
+    - 接收私聊消息：
+
+      ![private_talk_example2](/screenshot/private_talk_2.PNG)
+
+    - 参与群聊消息 用户A视角：
+
+      ![group_talk_example](/screenshot/group_talk1.PNG)
+
+    - 参与群聊消息 用户B消息：
+
+      ![group_talk_example2](/screenshot/group_talk2.PNG)
+
 ### 实现的功能:
 
 -------
